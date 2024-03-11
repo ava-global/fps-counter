@@ -177,6 +177,9 @@ public extension FPSCounter {
             controller.fpsCounter.stopTracking()
             window.isHidden = true
         }
+        
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+        windowScene.windows.last?.isHidden = true
     }
 
     /// Returns wether the FPS counter is currently visible or not.
