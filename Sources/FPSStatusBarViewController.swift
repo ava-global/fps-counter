@@ -59,12 +59,16 @@ class FPSStatusBarViewController: UIViewController {
 
         self.fpsCounter.delegate = self
     }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        updateStatusBarFrame()
+    }
 
-    @objc func updateStatusBarFrame(_ notification: Notification) {
-        let application = notification.object as? UIApplication
-        let frame = CGRect(x: 0.0, y: 0.0, width: application?.keyWindow?.bounds.width ?? 0.0, height: 20.0)
-
-        FPSStatusBarViewController.statusBarWindow.frame = frame
+    @objc func updateStatusBarFrame(_ notification: Notification? = nil) {
+        if let windowScene = self.view.window?.windowScene {
+            self.view.frame = windowScene.statusBarManager?.statusBarFrame ?? CGRect.zero
+        }
     }
 
 
@@ -87,7 +91,7 @@ extension FPSStatusBarViewController: FPSCounterDelegate {
         self.resignKeyWindowIfNeeded()
 
         let milliseconds = 1000 / max(fps, 1)
-        self.label.text = "\(fps) FPS (\(milliseconds) milliseconds per frame)"
+        self.label.text = "\(fps) FPS (\(milliseconds) ms/f)"
 
         switch fps {
         case 45...:
@@ -113,7 +117,24 @@ extension FPSStatusBarViewController: FPSCounterDelegate {
 
 
 public extension FPSCounter {
+    @objc static var statusBarWindow: UIWindow?
+    
+    // This function is responsible for creating the status bar window
+    // It now uses the window scene for iOS 13 and later
+    static func createStatusBarWindow() {
+        // Check if we can get the window scene
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+            return
+        }
+        
+        let window = FPStatusBarWindow(windowScene: windowScene)
+        window.windowLevel = .statusBar + 1
+        window.rootViewController = FPSStatusBarViewController()
+        window.frame = windowScene.statusBarManager?.statusBarFrame ?? CGRect.zero
+        statusBarWindow = window
+    }
 
+    
     // MARK: - Show FPS in the status bar
 
     /// Add a label in the status bar that shows the applications current FPS.
@@ -131,14 +152,18 @@ public extension FPSCounter {
         runloop: RunLoop = .main,
         mode: RunLoop.Mode = .common
     ) {
-        let window = FPSStatusBarViewController.statusBarWindow
-        window.frame = application.statusBarFrame
+        // Ensure the status bar window is created
+        if statusBarWindow == nil {
+            createStatusBarWindow()
+        }
+        
+        guard let window = statusBarWindow else { return }
         window.isHidden = false
 
         if let controller = window.rootViewController as? FPSStatusBarViewController {
             controller.fpsCounter.startTracking(
-                inRunLoop: runloop,
-                mode: mode
+                inRunLoop: .main,
+                mode: .common
             )
         }
     }
