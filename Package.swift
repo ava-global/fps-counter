@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "FPSCounter",
     platforms: [
-        .iOS(.v10),
+        .iOS(.v14),
     ],
     products: [
         .library(name: "FPSCounter", targets: ["FPSCounter"]),
